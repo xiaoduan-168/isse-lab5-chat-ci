@@ -18,16 +18,21 @@ api_key = os.getenv("DEEPSEEK_API_KEY")
 client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com") if api_key else None
 
 # 会话持久化：启动时从 data/conversations.json 读入内存，每次变更后写回文件。
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-DATA_FILE = os.path.join(DATA_DIR, "conversations.json")
+# 数据目录默认是代码旁的 data/；测试和冒烟检查可以设 LAB5_DATA_DIR 指到临时目录，
+# 让检查用独立数据，不碰真实聊天记录。
+def get_data_dir():
+    return os.environ.get("LAB5_DATA_DIR") or os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data"
+    )
 
 
 def load_conversations():
     """启动时读取 data/conversations.json；文件不存在或内容异常时从空列表开始"""
-    if not os.path.exists(DATA_FILE):
+    data_file = os.path.join(get_data_dir(), "conversations.json")
+    if not os.path.exists(data_file):
         return []
     try:
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
+        with open(data_file, "r", encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, list):
             return data
@@ -38,8 +43,9 @@ def load_conversations():
 
 def save_conversations():
     """把内存中的会话列表写回 data/conversations.json"""
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
+    data_dir = get_data_dir()
+    os.makedirs(data_dir, exist_ok=True)
+    with open(os.path.join(data_dir, "conversations.json"), "w", encoding="utf-8") as f:
         json.dump(conversations, f, ensure_ascii=False, indent=2)
 
 
@@ -52,6 +58,16 @@ next_conversation_id = max((c["id"] for c in conversations), default=0) + 1
 next_message_id = max(
     (m["id"] for c in conversations for m in c.get("messages", [])), default=0
 ) + 1
+
+
+def reset_state():
+    """测试用：清空内存并重新从数据文件加载，配合 LAB5_DATA_DIR 让每个测试从干净状态开始"""
+    global conversations, next_conversation_id, next_message_id
+    conversations = load_conversations()
+    next_conversation_id = max((c["id"] for c in conversations), default=0) + 1
+    next_message_id = max(
+        (m["id"] for c in conversations for m in c.get("messages", [])), default=0
+    ) + 1
 
 
 def find_conversation(conversation_id):

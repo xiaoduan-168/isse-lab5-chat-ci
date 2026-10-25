@@ -151,7 +151,6 @@ def delete_conversation(conversation_id):
     conv = find_conversation(conversation_id)
     if conv is None:
         return jsonify({"error": f"ID 为 {conversation_id} 的会话不存在"}), 404
-    conversations.remove(conv)
     save_conversations()
     return jsonify({"deleted": conv})
 

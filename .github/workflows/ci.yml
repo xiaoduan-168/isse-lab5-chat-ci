@@ -26,3 +26,6 @@ jobs:
       # 运行测试 + 70% 覆盖率检查
       - name: Run tests with coverage
         run: python -m pytest -q --cov=app --cov-report=term-missing --cov-fail-under=70
+      # 冒烟检查：真正启动应用，确认首页和连通性接口能响应
+      - name: Run smoke test
+        run: python scripts/smoke_test.py
